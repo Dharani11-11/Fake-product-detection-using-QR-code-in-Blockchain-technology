@@ -1,0 +1,330 @@
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.*;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
+
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.WriterException;
+import com.google.zxing.client.j2se.MatrixToImageWriter;
+import com.google.zxing.qrcode.QRCodeWriter;
+import com.google.zxing.common.BitMatrix;
+
+public class ProductRegistration extends JFrame {
+    private JTextField txtProductName, txtSpecification, txtSerialNumber, txtManufactureDate, txtProductHash, txtQrCodePath;
+    private JLabel lblTotalProducts;
+    private List<Product> myChain = new ArrayList<>();
+
+    public ProductRegistration() {
+        setTitle("Block Chain - Product Registration");
+        setSize(1024, 600);
+        setLayout(null);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+        JLabel lblTitle = new JLabel("Product Registration");
+        lblTitle.setFont(new Font("Arial", Font.BOLD, 30));
+        lblTitle.setBounds(90, 53, 500, 40);
+        add(lblTitle);
+
+        JLabel lblCheckProduct = new JLabel("Check Product");
+        lblCheckProduct.setFont(new Font("Arial", Font.BOLD, 30));
+        lblCheckProduct.setBounds(690, 53, 500, 40);
+        add(lblCheckProduct);
+
+        JLabel lblProductName = new JLabel("Product Name:");
+        lblProductName.setFont(new Font("Arial", Font.BOLD, 15));
+        lblProductName.setBounds(80, 130, 200, 30);
+        add(lblProductName);
+
+        txtProductName = new JTextField();
+        txtProductName.setFont(new Font("Arial", Font.BOLD, 15));
+        txtProductName.setBounds(300, 130, 300, 30);
+        add(txtProductName);
+
+        JLabel lblSpecification = new JLabel("Specification:");
+        lblSpecification.setFont(new Font("Arial", Font.BOLD, 15));
+        lblSpecification.setBounds(80, 180, 200, 30);
+        add(lblSpecification);
+
+        txtSpecification = new JTextField();
+        txtSpecification.setFont(new Font("Arial", Font.BOLD, 15));
+        txtSpecification.setBounds(300, 180, 300, 30);
+        add(txtSpecification);
+
+        JLabel lblSerialNumber = new JLabel("Serial Number:");
+        lblSerialNumber.setFont(new Font("Arial", Font.BOLD, 15));
+        lblSerialNumber.setBounds(80, 230, 200, 30);
+        add(lblSerialNumber);
+
+        txtSerialNumber = new JTextField();
+        txtSerialNumber.setFont(new Font("Arial", Font.BOLD, 15));
+        txtSerialNumber.setBounds(300, 230, 300, 30);
+        add(txtSerialNumber);
+
+        JLabel lblManufactureDate = new JLabel("Date of Manufacturing:");
+        lblManufactureDate.setFont(new Font("Arial", Font.BOLD, 15));
+        lblManufactureDate.setBounds(80, 280, 200, 30);
+        add(lblManufactureDate);
+
+        txtManufactureDate = new JTextField();
+        txtManufactureDate.setFont(new Font("Arial", Font.BOLD, 15));
+        txtManufactureDate.setBounds(300, 280, 200, 30);
+        add(txtManufactureDate);
+
+        JLabel lblProductHash = new JLabel("Product Hash Code:");
+        lblProductHash.setFont(new Font("Arial", Font.BOLD, 15));
+        lblProductHash.setBounds(80, 380, 200, 30);
+        add(lblProductHash);
+
+        txtProductHash = new JTextField();
+        txtProductHash.setFont(new Font("Arial", Font.BOLD, 15));
+        txtProductHash.setBounds(300, 380, 300, 30);
+        add(txtProductHash);
+
+        JButton btnRegister = new JButton("Register & Generate QRCode");
+        btnRegister.setFont(new Font("Arial", Font.BOLD, 15));
+        btnRegister.setBounds(280, 330, 300, 30);
+        add(btnRegister);
+
+        JLabel lblSelectQrCode = new JLabel("Select QRCode:");
+        lblSelectQrCode.setFont(new Font("Arial", Font.BOLD, 15));
+        lblSelectQrCode.setBounds(700, 130, 200, 30);
+        add(lblSelectQrCode);
+
+        txtQrCodePath = new JTextField();
+        txtQrCodePath.setFont(new Font("Arial", Font.BOLD, 15));
+        txtQrCodePath.setBounds(900, 130, 200, 30);
+        add(txtQrCodePath);
+
+        JButton btnLoadQrCode = new JButton("Load");
+        btnLoadQrCode.setFont(new Font("Arial", Font.BOLD, 12));
+        btnLoadQrCode.setBounds(1110, 130, 100, 30);
+        add(btnLoadQrCode);
+
+        JButton btnCheckProduct = new JButton("Check Product");
+        btnCheckProduct.setFont(new Font("Arial", Font.BOLD, 15));
+        btnCheckProduct.setBounds(800, 180, 200, 30);
+        add(btnCheckProduct);
+
+        lblTotalProducts = new JLabel("Total Products in Blockchain:");
+        lblTotalProducts.setFont(new Font("Arial", Font.BOLD, 15));
+        lblTotalProducts.setBounds(700, 280, 300, 30);
+        add(lblTotalProducts);
+
+       
+        btnRegister.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                addProduct();
+            }
+        });
+
+        
+        btnLoadQrCode.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                selectFile();
+            }
+        });
+
+        // Check product button action
+        btnCheckProduct.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                readProduct();
+            }
+        });
+
+        showProductCount();
+        setVisible(true);
+    }
+
+    private void addProduct() {
+        String productName = txtProductName.getText();
+        String specification = txtSpecification.getText();
+        String serialNumber = txtSerialNumber.getText();
+        String manufactureDate = txtManufactureDate.getText().replace("-", "/");
+
+        Product newProduct = new Product("First Block", productName, specification, serialNumber, manufactureDate);
+        myChain.add(newProduct);
+
+        txtProductHash.setText(newProduct.getBlockHash());
+        saveProduct(newProduct);
+
+        String productData = productName + "-" + specification + "-" + serialNumber + "-" + manufactureDate;
+        generateQrCode(productData, serialNumber);
+        showQrCode(serialNumber + ".png");
+        showProductCount();
+    }
+
+    private void saveProduct(Product product) {
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream("product.pkl", true))) {
+            oos.writeObject(product);
+            System.out.println("Object successfully saved.");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void selectFile() {
+        JFileChooser fileChooser = new JFileChooser();
+        int returnValue = fileChooser.showOpenDialog(null);
+        if (returnValue == JFileChooser.APPROVE_OPTION) {
+            File selectedFile = fileChooser.getSelectedFile();
+            txtQrCodePath.setText(selectedFile.getPath());
+            showQrCode(selectedFile.getPath());
+        }
+    }
+
+    private void showQrCode(String filePath) {
+        try {
+            ImageIcon icon = new ImageIcon(filePath);
+            Image img = icon.getImage().getScaledInstance(200, 200, Image.SCALE_SMOOTH);
+            JLabel lblQrCode = new JLabel(new ImageIcon(img));
+            lblQrCode.setBounds(380, 430, 200, 200);
+            add(lblQrCode);
+            revalidate();
+            repaint();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void readProduct() {
+        String filePath = txtQrCodePath.getText();
+        String qrCodeData = readQrCode(filePath);
+
+        if (qrCodeData != null) {
+            String[] dataParts = qrCodeData.split("-");
+            txtProductName.setText(dataParts[0]);
+            txtSpecification.setText(dataParts[1]);
+            txtSerialNumber.setText(dataParts[2]);
+            txtManufactureDate.setText(dataParts[3]);
+            checkProduct(qrCodeData);
+        } else {
+            JOptionPane.showMessageDialog(this, "This is Not an Original Product", "Product Exception", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void checkProduct(String qrCodeData) {
+        boolean isOriginal = false;
+
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream("product.pkl"))) {
+            while (true) {
+                try {
+                    Product product = (Product) ois.readObject();
+                    if (product.getBlockData().equals(qrCodeData)) {
+                        isOriginal = true;
+                        break;
+                    }
+                } catch (EOFException e) {
+                    break;
+                }
+            }
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+
+        if (isOriginal) {
+            JOptionPane.showMessageDialog(this, "Product Verified - Original Product", "Product", JOptionPane.INFORMATION_MESSAGE);
+        } else {
+            JOptionPane.showMessageDialog(this, "Product Not Original Product", "Product", JOptionPane.WARNING_MESSAGE);
+        }
+    }
+
+    private String readQrCode(String filePath) {
+        try {
+            File file = new File(filePath);
+            Scanner scanner = new Scanner(file);
+            return scanner.nextLine();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    private void generateQrCode(String data, String filename) {
+        QRCodeWriter qrCodeWriter = new QRCodeWriter();
+        try {
+            BitMatrix bitMatrix = qrCodeWriter.encode(data, BarcodeFormat.QR_CODE, 200, 200);
+            File outputFile = new File("qrcode/" + filename + ".png");
+            MatrixToImageWriter.writeToPath(bitMatrix, "PNG", outputFile.toPath());
+        } catch (WriterException | IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void showProductCount() {
+        int totalProducts = getTotalProducts();
+        lblTotalProducts.setText("Total Products in Blockchain: " + totalProducts);
+    }
+
+    private int getTotalProducts() {
+        int count = 0;
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream("product.pkl"))) {
+            while (true) {
+                try {
+                    ois.readObject();
+                    count++;
+                } catch (EOFException e) {
+                    break;
+                }
+            }
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+        return count;
+    }
+
+    public static void main(String[] args) {
+        new ProductRegistration();
+    }
+}
+
+class Product implements Serializable {
+    private String previousBlockHash;
+    private String productName;
+    private String specification;
+    private String serialNumber;
+    private String manufactureDate;
+    private String blockData;
+    private String blockHash;
+
+    public Product(String previousBlockHash, String productName, String specification, String serialNumber, String manufactureDate) {
+        this.previousBlockHash = previousBlockHash;
+        this.productName = productName;
+        this.specification = specification;
+        this.serialNumber = serialNumber;
+        this.manufactureDate = manufactureDate;
+        this.blockData = productName + " - " + specification + " - " + serialNumber + " - " + manufactureDate + " - " + previousBlockHash;
+        this.blockHash = generateHash(blockData);
+    }
+
+    private String generateHash(String data) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(data.getBytes());
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hash) {
+                hexString.append(String.format("%02x", b));
+            }
+            return hexString.toString();
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public String getBlockData() {
+        return blockData;
+    }
+
+    public String getBlockHash() {
+        return blockHash;
+    }
+}
